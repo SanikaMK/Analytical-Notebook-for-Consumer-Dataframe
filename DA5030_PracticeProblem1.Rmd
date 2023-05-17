@@ -1,0 +1,177 @@
+---
+title: "DA 5030 Practice Problem 1"
+output:
+  html_document:
+    df_print: paged
+---
+
+
+# Question 1:
+
+**Comment:** As the question 1 requested, RStudio was downloaded to execute the code and to organize the output into a readable report. The codes are written in .rmd file and will be saved in .html for its R Markdown version. 
+
+# Question 2:
+
+```{r}
+customer_df = read.csv("/Users/sanikakalvikatte/Downloads/customertxndata.csv", header = FALSE)
+customer_df
+```
+
+**Comment:** The provided data set customertxndata.csv has been downloaded and uploaded in the RStudion with the help of read.csv() function. The first glance at the data provided shows that there is no available header in the data, thus, header = FALSE has been used in the code. Moreover, we need header to understand the numbers and its units for data analysis. Thus colnames() function was used to rename the suggested column names with respect to the index number of the column.
+
+```{r}
+colnames(customer_df)[1] <- "customer_visits"
+colnames(customer_df)[2] <- "customer_transactions"
+colnames(customer_df)[3] <- "customer_operation_system"
+colnames(customer_df)[4] <- "customer_gender"
+colnames(customer_df)[5] <- "revenue"
+customer_df
+```
+
+# Question 3:
+
+```{r}
+library(dplyr)
+summary(customer_df)
+sd(customer_df$revenue)
+total_rev <- customer_df %>% mutate(cum_sales = cumsum(revenue))
+max(total_rev$cum_sales)
+
+gender_ratio <-
+customer_df %>%
+   group_by(customer_gender) %>%
+   summarise(gender_count = n())
+
+na.omit(gender_ratio)
+```
+**Comment:** The summary() provides a wide glimpse at the values and the volume of data we are dealing with, this is useful for detailed data analysis. The total transaction amount (revenue): 10372524, mean number of visits = 12.49, median revenue = 344.7, standard deviation of revenue = 425.9884, most common gender = Male(14730). Excluding any cases where there is a missing value. The function na.omit() was used for filtering missing values. 
+
+# Question 4:
+
+```{r}
+library(ggplot2)
+library(tidyverse)
+avg_rev <- customer_df %>% 
+  drop_na(customer_gender) %>%
+  group_by(customer_gender) %>% 
+  summarise(avg_rev = mean(revenue))
+
+
+avg_rev %>% 
+  ggplot(mapping = aes(x=customer_gender, y = avg_rev)) + geom_bar(stat = "identity",aes(fill = 'salmon'))
+```
+
+**Comment:**
+The function ggplot() + geom_bar() was used to create bar chart visualization between gender vs revenue. From the bar plot it is observed that Females tend to contribute higher towards the average revenue earned than Males. Males contribute around 350 units of the revenue where as Females contribute well over 1000 units, i.e. around 4 times the spending compared with Males.
+
+# Question 5
+
+```{r}
+# Pearson correlation between 2 variables
+cor(customer_df$customer_visits, customer_df$revenue, method = "pearson")
+```
+
+**Comment:** The Pearson Moment of Correlation shows the amount of relationship the two variables have with each other. The correlation closer to +1 denotes higher linear(increasing) relationship, -1 denotes negative(declining) relationship and 0 denotes no relationship. There seems to a positive increasing correlation between the customers visit and the revenue. A correlation as higher as 0.73, denotes that the variable are highly correlated and linear to each other.
+
+# Question 6
+
+```{r}
+df_na <- is.na(customer_df)
+
+colSums(df_na)
+
+which(colSums(df_na)>0)
+
+names(which(colSums(df_na)>0))
+```
+**Comment:** The fields customer_transactions and customer_gender have NA in there data, which means they have missing data. These values could be recognized by the help of is.na() function in r. This gives us values in True or False, as per the NA value exists. After that I have taken a sum of all the NAs in the column and filter only those who have NAs more than 0. Thus returning the fields with missing values. 
+The fields could be imputed in various ways, for customer_transactions an average would be better substitution, if we can figure out the mean transaction value and simply substitute the average value in the missing fields could work. Similar, in the case of higher outlier count median od the transaction value would work better. For more precise information to use as imputation data, a regression model can be built for predicting the fit based on various factor for that individual, for example: zip code, number of previous transactions, years of enrollment, etc. 
+For the field customer_gender, a decision tree could be used, for example male customers buy certain items much more than a female customer would usually do. Strong gender based first name, can be a part of this decision tree. 
+
+# Question 7
+
+```{r}
+mean(customer_df$customer_transactions, na.rm=TRUE)
+
+Mode <- function(x) {
+  ux <- na.omit(unique(x) )
+ tab <- tabulate(match(x, ux)); ux[tab == max(tab) ]
+}
+
+Mode(customer_df$customer_gender)
+```
+
+**Comment:** To find out suitable imputation value, here mean of customer_transactions was used. The mean value is around 0.99 ~ 1 (rounded to the nearest whole number). And for customer_gender mode() has been used. The mode denotes that there are consecutive Male gender in the data frame thus Male would be a suitable imputation value.
+
+```{r}
+library("dplyr")
+library("tidyr")
+
+customer_df["customer_transactions"][is.na(customer_df["customer_transactions"])] <- 1
+
+customer_df <- customer_df %>%
+  mutate_at(c('customer_gender'), ~replace_na(.,"Male"))
+```
+
+**Comment:** There are two different type of values that are being replaced, 1 is numeric and Male is string, thus the suitable code for imputation has been used.
+
+```{r}
+df_na <- is.na(customer_df)
+
+colSums(df_na)
+
+```
+
+**Comment:** The above code is just for validation purpose, to see if there are any NA values still available in the data frame, since, the question aims to impute all the missing values.
+
+
+# Question 8
+
+```{r}
+nrow<-nrow(customer_df) 
+training_set<-customer_df[seq(1,nrow,by=2),] #select only odds rows
+validation_set<-customer_df[seq(2,nrow,by=2),] #select only even rows
+training_set
+validation_set
+```
+
+**Comment:** As suggested in the question the data has been seggregated into two parts as per the row number, row 1, 3, 5, 7, etc. are training data while rows 2, 4, 6, etc. are validation data. The nrow() function was used to get the accurate row number for seggrigation of the data.
+
+
+# Question 9:
+
+```{r}
+mean(training_set$revenue, na.rm=TRUE)
+mean(validation_set$revenue, na.rm=TRUE)
+```
+
+```{r}
+library(dplyr)
+
+training_set %>% 
+  count(customer_gender)
+
+validation_set %>% 
+  count(customer_gender)
+
+```
+
+**Comment:** As we can see, the mean revenue of validation set is higher compared to training set. The validation set comprises of row number 2,4,6, etc. i.e. even row numbers in this data frame has higher revenue generation than odd row numbers, I further drilled down to see weather gender plays a crucial role after the separation of the data, it appears like Males might have contributed higher, which have caused the mean of validation_set to be higher in revenue. 
+
+# Question 10:
+
+```{r}
+## set the seed to make your partition reproducible
+set.seed(77654)
+
+training_size <- sample.int(n = nrow(customer_df), size = floor(.60*nrow(customer_df)), replace = F)
+testing_size <- sample.int(n = nrow(customer_df), size = floor(.20*nrow(customer_df)), replace = F)
+validation_size <- sample.int(n = nrow(customer_df), size = floor(.20*nrow(customer_df)), replace = F)
+
+train <- customer_df[training_size, ]
+test  <- customer_df[-testing_size, ]
+validation <- customer_df[-validation_size, ]
+```
+
+**Comment:** As requested in the question, the seed is set to 77654 to ensure that your code is reproducible and that everyone gets the same result. About 60% of the data was separated towards training_size, and 20% each towards testing_size and validation_size.
+
